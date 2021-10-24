@@ -1,14 +1,22 @@
+// PARAMS + STATE
+int numRadials = 30;
+boolean showControlPoints = false;
+
+float radialOffset = 0;
+float radialOffsetVelocity = 0.005;
+
+float curveScale = 1.0;
+float curveScaleVelocity = 0.0005;
+float curveScaleMin = 0.4;
+
+///////////
+
 PFont font;
 int fontSize = 24;
 
 
-float gameStepTime = 150;
-float currentStepTime = 0;
-float lastStepTime = 0;
-
 Curve baseCurve;
-
-PVector worldOffset = new PVector(200,200);
+PVector worldOffset = new PVector(250,250);
 
 class Curve { 
   float ypos, speed;
@@ -24,10 +32,15 @@ class Curve {
   
   void render(color c, float rotation, boolean drawControls) {
      noFill();
-     PVector rA1 = this.A1.rotate(rotation);
-     PVector rC1 = this.C1.rotate(rotation);
-     PVector rC2 = this.C2.rotate(rotation);
-     PVector rA2 = this.A2.rotate(rotation);
+     PVector rA1 = new PVector(this.A1.x, this.A1.y);
+     PVector rC1 = new PVector(this.C1.x, this.C1.y);
+     PVector rC2 = new PVector(this.C2.x, this.C2.y);
+     PVector rA2 = new PVector(this.A2.x, this.A2.y);
+     
+     rA1 = rA1.rotate(rotation).mult(curveScale).add(worldOffset);
+     rC1 = rC1.rotate(rotation).mult(curveScale).add(worldOffset);
+     rC2 = rC2.rotate(rotation).mult(curveScale).add(worldOffset);
+     rA2 = rA2.rotate(rotation).mult(curveScale).add(worldOffset);
      
     if (drawControls) {
       stroke(255, 102, 0);
@@ -44,26 +57,41 @@ class Curve {
 void setup() {
   size(500, 700);
   font = createFont("Arial", fontSize ,true);
-  
-  //baseCurve = new Curve(340, 80, 40, 40, 360, 360, 60, 320);
-  baseCurve = new Curve(250, 250, 40, 40, 360, 360, 250, 50);
-   
-  
+  baseCurve = new Curve(0, 0, -150, -250, 100, 50, 0, -200); 
 }
 
 void draw() {
   background(0);
+  
+  updateState();
   render();
 }
 
+void updateState() {
+   radialOffset += radialOffsetVelocity % (float)(2*Math.PI);
+   updateCurveScale();
+}
+
+void updateCurveScale() {
+  if (curveScaleVelocity > 0) {
+     if (curveScale >= 1.0) {
+       curveScaleVelocity = -curveScaleVelocity;
+     }
+   } else {
+     if (curveScale <= curveScaleMin) {
+       curveScaleVelocity = -curveScaleVelocity;
+     }
+   }
+   
+   curveScale += curveScaleVelocity;
+}
+
 void render() {
-  
   renderContainingCircle();
   
-  //baseCurve.render(color(255), true);
-  for (int i=0; i<10; ++i) {
-    float rotation = (float)(2*Math.PI/10.0);
-    baseCurve.render(color(255), rotation, true);
+  for (int i=0; i<numRadials; ++i) {
+    float rotation = (float)(2*Math.PI/numRadials)*i;
+    baseCurve.render(color(255), rotation+radialOffset, showControlPoints);
   }
 }
 
