@@ -1,13 +1,41 @@
+import controlP5.*;
+ControlP5 cp5;
+
+float C1x; 
+float C1y;
+float C2x; 
+float C2y;
+
+Slider C1xSlider;
+Slider C1ySlider;
+Slider C2xSlider;
+Slider C2ySlider;
+  
+
 // PARAMS + STATE
-int numRadials = 30;
-boolean showControlPoints = false;
+int numRads = 15;
+Slider numRadialsSlider;
+int maxRads = 75;
+
+CheckBox showControlLinesCheckbox;
 
 float radialOffset = 0;
-float radialOffsetVelocity = 0.005;
+float radVel = 0.001;
+Slider radVelSlider;
 
 float curveScale = 1.0;
-float curveScaleVelocity = 0.0005;
-float curveScaleMin = 0.4;
+float curveScaleVelocity = 0.0003;
+float curveScaleMaxDelta = 0.15;
+
+float cpRange = 350;
+
+float cpVel = 0.7;
+float C1xVelocity = 1;
+float C1yVelocity = 1;
+float C2xVelocity = 1;
+float C2yVelocity = 1;
+
+Slider cpVelSlider;
 
 ///////////
 
@@ -57,7 +85,59 @@ class Curve {
 void setup() {
   size(500, 700);
   font = createFont("Arial", fontSize ,true);
-  baseCurve = new Curve(0, 0, -150, -250, 100, 50, 0, -200); 
+  baseCurve = new Curve(0, 0, -150, -250, 100, 50, 0, -200);
+  
+  cp5 = new ControlP5(this);
+  
+  addControlPointSliders(570);
+  
+}
+
+void addControlPointSliders(float y) {
+  C1xSlider = addCPSlider("C1x", 20, y, -150);
+  C1ySlider = addCPSlider("C1y", 20, y+30, -250);
+  C2xSlider = addCPSlider("C2x", 20, y+60, 100);
+  C2ySlider = addCPSlider("C2y", 20, y+90, 50);
+  
+  cpVelSlider = cp5
+    .addSlider("cpVel")
+    .setPosition(250, y)
+    .setSize(200, 20)
+    .setRange(0, 2)
+    .setValue(cpVel)
+    .setColorCaptionLabel(color(200));
+    
+  radVelSlider = cp5
+    .addSlider("radVel")
+    .setPosition(250, y+30)
+    .setSize(200, 20)
+    .setRange(-0.025, 0.025)
+    .setValue(radVel)
+    .setColorCaptionLabel(color(200));
+    
+  numRadialsSlider = cp5
+    .addSlider("numRads")
+    .setPosition(250, y+60)
+    .setSize(200, 20)
+    .setRange(1, maxRads)
+    .setValue(numRads)
+    .setNumberOfTickMarks(maxRads)
+    .setColorCaptionLabel(color(200));
+    
+  showControlLinesCheckbox = cp5.addCheckBox("ShowControlLinesCheckbox")
+                .setPosition(250, y+90)
+                .setSize(20, 20)
+                .addItem("Show Control Lines", 0);
+                
+}
+
+Slider addCPSlider(String name, float posX, float posY, float startValue) {
+  return cp5.addSlider(name)
+     .setPosition(posX, posY)
+     .setSize(200, 20)
+     .setRange(-cpRange, cpRange)
+     .setValue(startValue)
+     .setColorCaptionLabel(color(200));
 }
 
 void draw() {
@@ -68,17 +148,37 @@ void draw() {
 }
 
 void updateState() {
-   radialOffset += radialOffsetVelocity % (float)(2*Math.PI);
+   updateControlPoints();
+  
+   updateBaseCurve();
+   
+   radialOffset += radVel % (float)(2*Math.PI);
    updateCurveScale();
+}
+
+void updateControlPoints() {
+  if (C1x >= cpRange || C1x <= -cpRange) C1xVelocity = -C1xVelocity;
+  if (C1y >= cpRange || C1y <= -cpRange) C1yVelocity = -C1yVelocity;
+  if (C2x >= cpRange || C2x <= -cpRange) C2xVelocity = -C2xVelocity;
+  if (C2y >= cpRange || C2y <= -cpRange) C2yVelocity = -C2yVelocity;
+
+   C1xSlider.setValue(C1x + C1xVelocity*cpVel);
+   C1ySlider.setValue(C1y + C1yVelocity*cpVel);
+   C2xSlider.setValue(C2x + C2xVelocity*cpVel);
+   C2ySlider.setValue(C2y + C2yVelocity*cpVel);
+}
+
+void updateBaseCurve() {
+  baseCurve = new Curve(0, 0, C1x, C1y, C2x, C2y, 0, -200);
 }
 
 void updateCurveScale() {
   if (curveScaleVelocity > 0) {
-     if (curveScale >= 1.0) {
+     if (curveScale >= 1.0 + curveScaleMaxDelta) {
        curveScaleVelocity = -curveScaleVelocity;
      }
    } else {
-     if (curveScale <= curveScaleMin) {
+     if (curveScale <= 1.0 - curveScaleMaxDelta) {
        curveScaleVelocity = -curveScaleVelocity;
      }
    }
@@ -89,9 +189,9 @@ void updateCurveScale() {
 void render() {
   renderContainingCircle();
   
-  for (int i=0; i<numRadials; ++i) {
-    float rotation = (float)(2*Math.PI/numRadials)*i;
-    baseCurve.render(color(255), rotation+radialOffset, showControlPoints);
+  for (int i=0; i<round(numRads); ++i) {
+    float rotation = (float)(2*Math.PI/round(numRads))*i;
+    baseCurve.render(color(255), rotation+radialOffset, showControlLinesCheckbox.getState(0));
   }
 }
 
